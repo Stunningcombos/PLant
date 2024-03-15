@@ -2,11 +2,17 @@ document.addEventListener("DOMContentLoaded", function() {
   const catMeatElement = document.getElementById("cookie");
   const catMeatCountElement = document.getElementById("cookie-count");
   const changeImageButton = document.getElementById("changeImageButton");
+  const chaosButton = document.getElementById("chaos");
   const upgrades = document.getElementById('upgrades');
 
   let catMeat = 0;
   let autoClickerInterval;
-  let autoClickerRate = 0; // Track the current rate of auto-clicker
+  let autoClickerRate = 0;
+  let chaosAnimation;
+  let posX;
+  let posY;
+  let directionX = 1;
+  let directionY = 1;
 
   catMeatElement.addEventListener('click', () => {
     catMeat++;
@@ -26,6 +32,14 @@ document.addEventListener("DOMContentLoaded", function() {
       .then(data => {
         const catImageUrl = data[0].url;
         catMeatElement.innerHTML = `<img class="popCat" src="${catImageUrl}">`;
+
+        const catImage = catMeatElement.querySelector('.popCat');
+        const catImageWidth = catImage.offsetWidth;
+        const catImageHeight = catImage.offsetHeight;
+        posX = (window.innerWidth - catImageWidth) / 2;
+        posY = (window.innerHeight - catImageHeight) / 2;
+        catImage.style.left = posX + 'px';
+        catImage.style.top = posY + 'px';
       })
       .catch(error => {
         console.error("Error fetching cat image:", error);
@@ -34,18 +48,49 @@ document.addEventListener("DOMContentLoaded", function() {
 
   changeImageButton.addEventListener('click', fetchCatImage);
 
+  function animateChaos() {
+    const catImage = catMeatElement.querySelector('.popCat');
+    const catImageWidth = catImage.offsetWidth;
+    const catImageHeight = catImage.offsetHeight;
+
+    posX += directionX * 5;
+    posY += directionY * 5;
+
+    if (posX <= 0 || posX >= window.innerWidth - catImageWidth) {
+      directionX = -directionX;
+    }
+    if (posY <= 0 || posY >= window.innerHeight - catImageHeight) {
+      directionY = -directionY;
+    }
+
+    catImage.style.left = posX + 'px';
+    catImage.style.top = posY + 'px';
+
+    chaosAnimation = requestAnimationFrame(animateChaos);
+  }
+
+  function addChaos() {
+    if (!chaosAnimation) {
+      posX = window.innerWidth / 2;
+      posY = window.innerHeight / 2;
+      animateChaos();
+    }
+  }
+
+  chaosButton.addEventListener('click', addChaos);
+
   const allUpgrades = [];
 
   function createUpgradeButton(upgrade) {
     const button = document.createElement('button');
-    button.textContent = `${upgrade.name} - Cost: ${upgrade.cost}`; // Corrected here
+    button.textContent = `${upgrade.name} - Cost: ${upgrade.cost}`;
     button.addEventListener('click', () => {
       if (catMeat >= upgrade.cost) {
         catMeat -= upgrade.cost;
         upgrade.cost *= 2;
         upgrade.effect();
         catMeatCountElement.textContent = `${catMeat} cat meat`;
-        button.textContent = `${upgrade.name} - Cost: ${upgrade.cost}`; // Corrected here
+        button.textContent = `${upgrade.name} - Cost: ${upgrade.cost}`;
       } else {
         alert('Not enough cat meat to purchase this upgrade!');
       }
@@ -68,21 +113,21 @@ document.addEventListener("DOMContentLoaded", function() {
   const autoClickUpgrade = {
     name: "Auto Clicker",
     baseCost: 50,
-    baseRate: 1, // Initial rate of auto-clicker
-    rateMultiplier: 2, // Rate multiplier for exponential increase
-    level: 0, // Track the level of auto-clicker upgrade
-    get cost() { // Changed to a getter function
+    baseRate: 1,
+    rateMultiplier: 2,
+    level: 0,
+    get cost() {
       return this.baseCost * Math.pow(this.rateMultiplier, this.level);
     },
     effect: function() {
       if (!autoClickerInterval) {
         autoClickerInterval = setInterval(() => {
-          catMeat += autoClickerRate; // Add cat meat based on the current rate
+          catMeat += autoClickerRate;
           catMeatCountElement.textContent = `${catMeat} cat meat`;
         }, 1000);
       }
-      autoClickerRate += autoClickUpgrade.baseRate * Math.pow(autoClickUpgrade.rateMultiplier, autoClickUpgrade.level); // Increase rate for next upgrade
-      autoClickUpgrade.level++; // Increase the level of auto-clicker upgrade
+      autoClickerRate += autoClickUpgrade.baseRate * Math.pow(autoClickUpgrade.rateMultiplier, autoClickUpgrade.level);
+      autoClickUpgrade.level++;
     }
   };
 
